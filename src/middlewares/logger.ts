@@ -6,13 +6,17 @@ const createCallsiteRecord = require('callsite-record');
 export const logz = require('logzio-nodejs').createLogger({
     token: process.env.LOGZ_IO_TOKEN,
     host: 'listener.logz.io',
+    debug: true,
+    extraFields: {
+        env: process.env.NODE_ENV || 'dev'
+    }
 });
 
 logz.send = (...args: any): void => {
     console.log(...args);
     // Autofill Origin domain here from process.env?
 
-    logz.log(args,{env: process.env.NODE_ENV});
+    logz.log(...args);
 };
 
 logz.error = (args: any,err? : any): void => {
@@ -21,7 +25,7 @@ logz.error = (args: any,err? : any): void => {
     // console.error(...args);
     // Autofill Origin domain here from process.env?
 
-    logz.log(args,{env: process.env.NODE_ENV});
+    logz.log(...args);
 };
 
 

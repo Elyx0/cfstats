@@ -25,6 +25,7 @@
             "name": "Debug local server build",
             "program": "${workspaceFolder}/src/server.ts",
             "preLaunchTask": "tsc: build - tsconfig.json",
+            "env":{"PORT":"9999","NODE_ENV": "development"},
             "outFiles": [
                 "${workspaceFolder}/build/**/*.js"
             ]

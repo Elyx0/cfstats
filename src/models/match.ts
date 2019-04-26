@@ -1,6 +1,6 @@
 import {createSchema, Type, typedModel, ExtractDoc, ExtractProps} from 'ts-mongoose';
 const matchSchema = createSchema({
-    id: Type.number({
+    matchID: Type.number({
         index: true,
     }),
     name: Type.optionalString(),

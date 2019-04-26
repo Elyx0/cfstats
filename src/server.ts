@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
+console.log(process.env.PORT);
 require('dotenv').config();
 
 import app from './app';
@@ -9,7 +10,14 @@ import mongoose from 'mongoose';
 import Fetcher from './fetcher';
 
 // Use strict is implied in import with ES6 modules
-const instance = app.listen(process.env.PORT);
+const instance = app.listen(process.env.PORT, (err: any) => {
+    if (err) {
+        console.error(err);
+        process.exit(0);
+    }
+    logz.send({message: `App Started on port ${process.env.PORT}`});
+
+});
 
 const {MONGO_USER, MONGO_PASS, MONGO_HOST, MONGO_PORT} = process.env;
 const dbString = `mongodb://${MONGO_USER}:${MONGO_PASS}@${MONGO_HOST}:${MONGO_PORT}`;
@@ -43,7 +51,7 @@ const setupConnection = async () => {
         // Loop again
         // Check memory heap,
         // We need to release everything
-        //  fetcher.on('fetching_ended',nextRun);
+        fetcher.on('fetching_ended',nextRun);
         fetcher.emit('fetching_ended');
     });
 };
@@ -75,12 +83,22 @@ process.on('SIGINT', function (): void {
         process.exit(0);
     });
 });
+
+process.on('uncaughtException', function (err) {
+    logz.error({
+        message: 'Uncaught Exception error',
+        time: Date.now(),
+        err: JSON.stringify(err),
+        service: 'fetcher',
+    },err);
+    process.exit(1);
+});
 // https://medium.com/dbkoda/coding-efficient-mongodb-joins-97fe0627751a
 
 // Forwarding to logz.log.io
 logz.log({
-    message: 'App Started',
+    message: 'Server Started',
     service: 'boot',
 });
 
-console.log(`App Started on port ${process.env.PORT}`);
+console.log(`Server Started on port ${process.env.PORT}`);
