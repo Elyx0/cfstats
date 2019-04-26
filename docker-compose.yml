@@ -1,0 +1,31 @@
+version: "2"
+volumes:
+  mongodata:
+services:
+  #  docker volume create mongodata
+  # After Up
+  # docker exec -it cfstats_mongodb_1 bash
+  # mongo
+  # use cfstats
+  # db.createUser({user:"yourAdmin", pwd:"yourDbPassword", roles:[{role:"readWrite", db: "cfstats"}]});
+  # uncomment command: [--auth]
+  mongodb:
+    image: mongo:4.0.9
+    environment:
+      - MONGO_DATA_DIR=/data/db
+      - MONGO_LOG_DIR=/dev/null
+    command: [--auth]
+    volumes:
+      - mongodata:/data/db
+    ports:
+      - "27017:27017"
+  web:
+    build: .
+    command: npm run debug
+    volumes:
+      - ./build:/usr/src/app/build
+    ports:
+      - "3000:3000"
+      - "5858:5858"
+    links:
+      - mongodb
