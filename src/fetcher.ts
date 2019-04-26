@@ -11,9 +11,10 @@ import mongoose from 'mongoose';
 import User from './models/user';
 import Match, {MatchDoc} from './models/match';
 
-import matchParser from './parser';
+import {matchParser} from './parser';
 
 const DEFAULT_START_MATCH_ID = 41315000;
+const MAX_POINTER_MATCH_ID = 41401862; // Until when should I seed
 
 // Getting the call done
 // /match/:id -> 260ms && 6.8kb (EMPTY)
@@ -23,6 +24,7 @@ const DEFAULT_START_MATCH_ID = 41315000;
 // = 86862 matches / 1 month data
 // = 634mb of Network + users
 // = 21h at 875ms / query
+// = 2h ~ with 10 parrallel ? Cloudflare stopping us?
 
 class Fetcher extends EventEmitter {
     public constructor() {
@@ -49,7 +51,23 @@ class Fetcher extends EventEmitter {
         // what if i'm too soon --> Won't exist either yet.
         // I actually need to wait until I get the next no matter what
         const nextMatch = matchID+1;
-        const match = await matchParser();
+
+        // Now let's parse from matchID until we've caught up
+        if (matchID > MAX_POINTER_MATCH_ID) {
+            // Slow delay between checking of matches
+            // Compute the incrementals?
+            await new Promise(res => setTimeout(res,1000));
+        } else {
+            // We're in the seeding phase. Go fast
+
+        }
+
+        const match = await matchParser({
+            start: matchID,
+            batch: {
+                batchSize: 10,
+            }
+        });
 
         if (!match) {
             // It should wait proportionally longer with a minimum.
@@ -61,8 +79,8 @@ class Fetcher extends EventEmitter {
                 matchID,
             });
         }
-        // Now let's parse from matchID until we've caught up
-        return await new Promise(res => setTimeout(res,200,match));
+
+        return parsed;
     }
 }
 
