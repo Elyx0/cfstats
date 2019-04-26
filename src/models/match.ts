@@ -4,7 +4,7 @@ const matchSchema = createSchema({
         index: true,
     }),
     name: Type.optionalString(),
-    gameType: Type.string({enum: ['ffa','team'], index: true}),
+    gameType: Type.string({enum: ['ffa','team','quickplay'], index: true}),
     itemset: Type.string({enum: ['speed','thin'], index: true}),
     playedAt: Type.date({index: true}),
     participants: Type.array({index: true}).of(Type.number()), // ids of playing players? [{Players}]? [id1,id2] , double entry? full row insert?
@@ -14,8 +14,8 @@ const matchSchema = createSchema({
     points: Type.array().of(Type.number()),
     positions: Type.array().of(Type.number()), // 1 1 2 2 || 1 2 3 4
     premium: Type.boolean(), // Was it made only by premiums?
-    createdAt: Type.date(),
-    updatedAt: Type.date(),
+    createdAt: Type.optionalDate(),
+    updatedAt: Type.optionalDate(),
 });
 
 matchSchema.index({id: 1},{name: 'idIndex'});
