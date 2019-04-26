@@ -7,6 +7,9 @@ import {EventEmitter} from 'events';
 // How much can paradigms help in detection of wrong workflow.
 //
 
+import mongoose from 'mongoose';
+import User from './models/user';
+import Match from './models/match';
 
 class Fetcher extends EventEmitter {
     public constructor() {
@@ -20,6 +23,7 @@ class Fetcher extends EventEmitter {
             time: Date.now(),
             service: 'fetcher',
         });
+
         return parsed;
     }
 }

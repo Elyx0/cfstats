@@ -1,6 +1,7 @@
 // Define console.log as the default logger
 const loggerFunction = (...args: any[]) => console.log(...args);
-
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const createCallsiteRecord = require('callsite-record');
 
 export const logz = require('logzio-nodejs').createLogger({
     token: process.env.LOGZ_IO_TOKEN,
@@ -8,8 +9,19 @@ export const logz = require('logzio-nodejs').createLogger({
 });
 
 logz.send = (...args: any): void => {
-    console.log(args);
-    logz.log(args);
+    console.log(...args);
+    // Autofill Origin domain here from process.env?
+
+    logz.log(args,{env: process.env.NODE_ENV});
+};
+
+logz.error = (args: any,err? : any): void => {
+    // eslint-disable-next-line no-undef
+    console.log(createCallsiteRecord({forError: err}).renderSync());
+    // console.error(...args);
+    // Autofill Origin domain here from process.env?
+
+    logz.log(args,{env: process.env.NODE_ENV});
 };
 
 

@@ -4,42 +4,71 @@ require('dotenv').config();
 import app from './app';
 import {logz} from './middlewares/logger';
 
-// Use strict is implied in import with ES6 modules
-const instance = app.listen(process.env.PORT);
+import mongoose from 'mongoose';
 
 import Fetcher from './fetcher';
 
-// Must be kept alive
-const fetcher = new Fetcher();
+// Use strict is implied in import with ES6 modules
+const instance = app.listen(process.env.PORT);
 
-async function nextRun() {
-    try {
-        await fetcher.run();
-    } catch (err) {
-        console.error(err);
+const {MONGO_USER, MONGO_PASS, MONGO_HOST, MONGO_PORT} = process.env;
+const dbString = `mongodb://${MONGO_USER}:${MONGO_PASS}@${MONGO_HOST}:${MONGO_PORT}`;
+
+const setupConnection = async () => {
+    console.log({
+        message: `Attempting to connect to ${dbString}`
+    });
+    mongoose.connect(dbString, err => {
+        if (err) {
+            throw err;
+        }
         logz.send({
-            message: 'Fetcher error',
-            time: Date.now(),
-            err,
-            service: 'fetcher',
+            message: 'Connected to MongoDB',
         });
-    }
-    fetcher.emit('fetching_ended');
-}
+        // Must be kept alive
+        const fetcher = new Fetcher();
 
-// Loop again
-// Check memory heap,
-// We need to release everything
-fetcher.on('fetching_ended',nextRun);
+        async function nextRun() {
+            const pulled = await fetcher.run();
+            logz.send({
+                message: 'Fetcher success',
+                time: Date.now(),
+                err: JSON.stringify(err),
+                pulled: pulled,
+                service: 'fetcher',
+            });
+            fetcher.emit('fetching_ended');
+        }
+
+        // Loop again
+        // Check memory heap,
+        // We need to release everything
+        //  fetcher.on('fetching_ended',nextRun);
+        fetcher.emit('fetching_ended');
+    });
+};
+
+//
+
+setupConnection().catch(err => {
+    logz.error({
+        message: 'Fetcher error',
+        time: Date.now(),
+        err: JSON.stringify(err),
+        service: 'fetcher',
+    },err);
+    process.exit(0);
+});
+// Mail me it's down? Respin itself?
 
 
 // Graceful process ending
-process.on('SIGTERM', function (): void {
-    console.log('SIGTERM caught');
+process.on('SIGINT', function (): void {
+    console.log('SIGINT caught');
     instance.close(function (): void {
         // Forwarding to logz.io
         logz.log({
-            message: 'App SIGTERM caught',
+            message: 'App SIGINT caught',
             service: 'boot',
         });
         console.log('Instance closed, exiting process');
