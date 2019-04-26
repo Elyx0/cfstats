@@ -5,6 +5,7 @@ const userSchema = createSchema({
     title: Type.string(),
     name: Type.string(),
     rank: Type.number(),
+    clans: Type.array().of(Type.string()),
     karma: Type.number({index: true}), // Up thinner down speeder over his own speed games
     premium: Type.boolean({index: true}),
     speedWin: Type.boolean({index: true}),
