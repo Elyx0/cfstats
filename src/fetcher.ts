@@ -16,7 +16,7 @@ import {matchParser, userParser} from './parser';
 const DEFAULT_START_MATCH_ID = 41315000;
 const MAX_POINTER_MATCH_ID = 41401862; // Until when should I seed
 
-const MATCH_BATCH_SIZE = 30;
+const MATCH_BATCH_SIZE = 300;
 // When polling and no results
 let fetcherRestartPoint = 0;
 
