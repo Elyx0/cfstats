@@ -37,7 +37,12 @@ const setupConnection = async () => {
         const fetcher = new Fetcher();
 
         async function nextRun() {
-            const pulled = await fetcher.run();
+            let pulled;
+            try {
+                pulled = await fetcher.run();
+            } catch (err) {
+                throw err;
+            }
             logz.send({
                 message: 'Fetcher success',
                 time: Date.now(),

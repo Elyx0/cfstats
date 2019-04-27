@@ -8,10 +8,10 @@ import {EventEmitter} from 'events';
 //
 
 import mongoose from 'mongoose';
-import User from './models/user';
+import Player from './models/player';
 import Match, {MatchDoc} from './models/match';
 
-import {matchParser} from './parser';
+import {matchParser, userParser} from './parser';
 
 const DEFAULT_START_MATCH_ID = 41315000;
 const MAX_POINTER_MATCH_ID = 41401862; // Until when should I seed
@@ -62,14 +62,14 @@ class Fetcher extends EventEmitter {
 
         }
 
-        const match = await matchParser({
+        const matches = await matchParser({
             start: matchID,
             batch: {
                 batchSize: 10,
             }
         });
 
-        if (!match) {
+        if (!matches || matches.length === 0) {
             // It should wait proportionally longer with a minimum.
             // But that will kill me during the seed where I want the max speed.
             //
@@ -78,9 +78,57 @@ class Fetcher extends EventEmitter {
                 service: 'fetcher',
                 matchID,
             });
+            return 0;
         }
 
-        return parsed;
+
+        // Check the users we don't have in DB
+        const playersIDsInMatches: any = new Set([].concat(...matches.map(({playersID}: any): number[] => playersID)));
+        const playersIDsInMatchesUnique = Array.from(playersIDsInMatches);
+        const alreadyIn = await Player.find({id: {$in: playersIDsInMatchesUnique}},{id: 1});
+        const alreadyInSet = new Set(alreadyIn.map(({id})=>id));
+
+        const toFetch = playersIDsInMatchesUnique.filter(x => !alreadyInSet.has(x));
+        logz.send({
+            message: `Missing users ${toFetch}, fetching...`,
+            service: 'fetcher',
+            missing: toFetch.length,
+            matchID,
+        });
+
+        const users = await userParser({
+            usersID: toFetch,
+            batch: {
+                batchSize: toFetch.length,
+            }
+        });
+
+        logz.send({
+            message: `Fetched ${users.length}, saving...`,
+            service: 'fetcher',
+            missing: toFetch.length,
+            matchID,
+        });
+
+        // Insert Users
+        const saveUsers = await Player.create(users);
+
+        logz.send({
+            message: `Saved ${users.length} users, saving matches...`,
+            service: 'fetcher',
+            matchID,
+        });
+
+        const saveMatches = await Match.create(matches);
+
+        logz.send({
+            message: `Saved ${matches.length} matches. End of run()`,
+            service: 'fetcher',
+            matchID,
+        });
+        // Insert Matches
+        // Update Users Stats
+        return matches || matches.length;
     }
 }
 

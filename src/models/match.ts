@@ -28,7 +28,7 @@ const matchSchema = createSchema({
 
 matchSchema.index({id: -1},{name: 'idIndex'});
 matchSchema.index({gameType: -1, itemset: -1},{name: 'GameItemSetIndex'});
-matchSchema.index({participants: -1, itemset: -1},{name: 'GameItemSetIndex'});
+matchSchema.index({playersID: -1, itemset: -1},{name: 'GameItemSetIndex'});
 
 
 const Match = typedModel('Match', matchSchema);

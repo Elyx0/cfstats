@@ -1,11 +1,9 @@
 /* eslint-disable no-implicit-coercion */
 /* eslint-disable no-case-declarations */
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
-import mongoose from 'mongoose';
-import User from './models/user';
-import Match, {MatchDoc} from './models/match';
+
 import cheerio from 'cheerio';
-import http from 'http';
+import {http} from 'follow-redirects';
 import {logz} from './middlewares/logger';
 import moment from 'moment-timezone';
 
@@ -21,7 +19,7 @@ const BASE = 'http://forum.curvefever.com';
 
 const doHttp = (url: string) => {
     return new Promise((rs, _rj) => {
-        http.get(url, {}, res => {
+        http.get(url, res => {
             console.log(`[${res.statusCode}] - ${url}`);
             if (res.statusCode !== 200) {
                 logz.send({
@@ -48,6 +46,91 @@ const batchHttp = (tasks: string[]): Promise<any> => {
     return Promise.all(promBatch);
 };
 
+export const parseMemberFor = (value: string) => {
+    let years: any =  /(?<years>\d+(?= year))/.exec(value);
+    years = years ? years[0] : 0;
+
+    let months: any =  /(?<months>\d+(?= month))/.exec(value);
+    months = months ? months[0] : 0;
+
+    let days: any =  /(?<days>\d+(?= day))/.exec(value);
+    days = days ? days[0] : 0;
+
+    const now = moment.tz('Europe/Paris');
+    const ago = now.clone().subtract({years,months,days}).toDate();
+    return ago;
+};
+
+export const parseUserHTML = ({rawData}: any) => {
+    const userObject: any = {};
+    const $ = cheerio.load(rawData);
+    const name = $('#page-title').text();
+    const country = $('.field-type-country .even').text();
+    const byTwo = Array.from($('dl').children()).reduce((acc: any,elem: any,i)=> i % 2 === 0 ? (acc.push([elem]),acc) : (acc[acc.length-1].push(elem),acc),[]);
+
+    let playerID: any = $('meta[http-equiv="X-Yadis-Location"]').attr('content').split('/').slice(-2).shift();
+    playerID = +(playerID);
+    let champion = false;
+    let premium = false;
+    let rank2 = 0;
+    let rank3 = 0;
+    let rank4 = 0;
+    let karma = 0;
+    let total2v2Games = 0;
+    let total3v3Games = 0;
+    let total4v4Games = 0;
+    let totalOldGames = 0;
+    let totalNewGames = 0;
+    let speedWin = 0;
+    let thinWin = 0;
+    let avatarURL = '';
+    let title = null;
+    let startedAt = new Date();
+    let clans: string[] = [];
+
+    byTwo.forEach((couple: string[]) => {
+        const heading = $(couple[0]).text();
+        let value =  $(couple[1]).text();
+        if (heading === 'Member for') {
+            userObject.startedAt = parseMemberFor(value);
+        }
+        if (heading === 'Premium member') {
+            userObject.premium = true;
+        }
+        if (heading === 'Champion') {
+            userObject.champion = true;
+        }
+        if (heading === 'number of games played') {
+            userObject.totalOldGames = +value;
+        }
+    });
+    // Is it a quickplay?
+    // We might want to rank that on a special ladder outside from FFA/TEAM
+    // TODO: us check
+    const userFinal = {
+        playerID,
+        title,
+        name,
+        rank2,
+        rank3,
+        rank4,
+        total2v2Games,
+        total3v3Games,
+        total4v4Games,
+        totalOldGames,
+        totalNewGames,
+        clans,
+        karma,
+        premium,
+        speedWin,
+        thinWin,
+        avatarURL,
+        country,
+        startedAt,
+    };
+    return Object.assign({}, userFinal, userObject);
+};
+
 export const parseMatchHTML = ({rawData}: any) => {
     const matchObject: any = {};
     const $ = cheerio.load(rawData);
@@ -67,7 +150,7 @@ export const parseMatchHTML = ({rawData}: any) => {
         return false;
     }
     // Check participants
-    let playersID = [];
+    let playersID: number[] = [];
     let winningPlayersID: number[] = [];
     let losingPlayersID: number[] = [];
     let playersScores: number[] = [];
@@ -95,7 +178,14 @@ export const parseMatchHTML = ({rawData}: any) => {
                     playerScore
                 };
             case 2:
-                const userId: any = $td.find('a').attr('href').split('/').pop();
+                // If the user deletes its profile the link will be gone but the game is still valid
+                // and must not inpact the calculations
+                let userId: any = false;
+                try {
+                    userId = $td.find('a').attr('href').split('/').pop();
+                } catch {
+                    userId = false;
+                }
                 return +userId;
             case 3:
                 return +text;
@@ -113,6 +203,7 @@ export const parseMatchHTML = ({rawData}: any) => {
             losingPlayersID.push(playerID);
             losingRounds = +roundForTeam;
         }
+        playersID.push(playerID);
         playersPositions.push(pos);
         playersRank.push(rank);
         playersScores.push(+playerScore);
@@ -136,6 +227,10 @@ export const parseMatchHTML = ({rawData}: any) => {
         itemset = 'thin';
     }
 
+    const filterDeletedUsersFromArray = (arr: any) => arr.filter(Boolean);
+
+    // Apply filter
+    [playersID, winningPlayersID,losingPlayersID] = [playersID, winningPlayersID,losingPlayersID].map(filterDeletedUsersFromArray);
     // Convert to moment
     playedAt = moment.tz(playedAt,'dddd, DD MMMM YYYY - HH:mm','Europe/Paris').toDate();
     const matchFinal = {
@@ -144,6 +239,7 @@ export const parseMatchHTML = ({rawData}: any) => {
         itemset,
         playedAt,
         karma: 0,
+        playersID,
         winningPlayersID,
         losingPlayersID,
         playersScores,
@@ -152,6 +248,8 @@ export const parseMatchHTML = ({rawData}: any) => {
         playersPositions,
         teamSize,
         tags,
+        winningRounds,
+        losingRounds,
     };
     return Object.assign({}, matchObject, matchFinal);
 };
@@ -165,7 +263,7 @@ export const matchParser = async (opts: any = {}): Promise<any> => {
             return `${BASE}/achtung/match/${start + i}`;
         }));
         logz.send({
-            message: `Parser ready to batch ${tasks.join(',')}`,
+            message: `Parser ready to batch matches ${tasks.join(',')}`,
             time: Date.now(),
             service: 'parser',
         }, {});
@@ -176,13 +274,38 @@ export const matchParser = async (opts: any = {}): Promise<any> => {
             time: Date.now(),
             service: 'parser',
         }, {});
-        const matchesDataFromHTML = matchesToKeep.map(parseMatchHTML);
+        const matchesDataFromHTML = matchesToKeep.map(parseMatchHTML).filter(Boolean);
+        return matchesDataFromHTML;
     }
     return false;
 };
 
-export const userParser = async (_opts = {}) => {
+export const userParser = async (opts: any = {}): Promise<any> => {
+    const {usersID, batch} = opts;
+    if (batch && batch.batchSize) {
+        // BatchSize is a blind guess from start to + batchSize.
+        // Some can 404 so
+        const tasks = usersID.map((userID: number) => {
+            return `${BASE}/user/${userID}`;
+        });
+        logz.send({
+            message: `Parser ready to batch users ${tasks.join(',')}`,
+            time: Date.now(),
+            service: 'parser',
+        }, {});
+        const user = await batchHttp(tasks); // 1 - 8 rawData.
+        const usersToKeep = user.filter((match: any) => !match.statusCode && !match.rawData.match(/Match not yet recorded or outdated/)); // Keep only request that worked
+        logz.send({
+            message: `userParser - Asked: ${tasks.length} - Received: ${usersToKeep.length}`,
+            time: Date.now(),
+            service: 'parser',
+        }, {});
+        const userDataFromHTML = usersToKeep.map(parseUserHTML).filter(Boolean);
 
+        // TODO: Fetch Avatars here
+        return userDataFromHTML;
+    }
+    return false;
 };
 
 export const avatarParser = async (_opts = {}) => {
