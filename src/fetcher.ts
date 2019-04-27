@@ -16,6 +16,10 @@ import {matchParser, userParser} from './parser';
 const DEFAULT_START_MATCH_ID = 41315000;
 const MAX_POINTER_MATCH_ID = 41401862; // Until when should I seed
 
+const MATCH_BATCH_SIZE = 30;
+// When polling and no results
+let fetcherRestartPoint = 0;
+
 // Getting the call done
 // /match/:id -> 260ms && 6.8kb (EMPTY)
 //              -> 875ms && 7.3kb (TEAM DATA)
@@ -38,7 +42,7 @@ class Fetcher extends EventEmitter {
             service: 'fetcher',
         });
         let parsed = 0;
-        const mostRecentMatch: any = await Match.findOne({},{matchID: 1},{sort: {matchID: 1}});
+        const mostRecentMatch: any = await Match.findOne({},{matchID: 1},{sort: {matchID: -1}});
         const matchID = (mostRecentMatch && mostRecentMatch.matchID) || DEFAULT_START_MATCH_ID;
         logz.send({
             message: 'Latest match entry processed: ' + matchID,
@@ -50,10 +54,19 @@ class Fetcher extends EventEmitter {
         // it should still create an empty row to know where to go from on the next tick
         // what if i'm too soon --> Won't exist either yet.
         // I actually need to wait until I get the next no matter what
-        const nextMatch = matchID+1;
+        let nextMatch = matchID+1;
+        if (fetcherRestartPoint >= nextMatch) {
+            logz.send({
+                message: `Restarting from ${fetcherRestartPoint}`,
+                service: 'fetcher',
+                matchID,
+                fetcherRestartPoint
+            });
+            nextMatch = fetcherRestartPoint + 1;
+        }
 
         // Now let's parse from matchID until we've caught up
-        if (matchID > MAX_POINTER_MATCH_ID) {
+        if (nextMatch > MAX_POINTER_MATCH_ID) {
             // Slow delay between checking of matches
             // Compute the incrementals?
             await new Promise(res => setTimeout(res,1000));
@@ -62,22 +75,28 @@ class Fetcher extends EventEmitter {
 
         }
 
-        const matches = await matchParser({
-            start: matchID,
+        const {lastIndexOfHttpSuccess, matches} = await matchParser({
+            start: nextMatch,
             batch: {
-                batchSize: 10,
+                batchSize: MATCH_BATCH_SIZE,
             }
         });
-
+        // There can be no team games played in this batch
+        // matches would be 0. --> matchParser needs to return the last biggest parsed index
+        // to continue from
         if (!matches || matches.length === 0) {
             // It should wait proportionally longer with a minimum.
             // But that will kill me during the seed where I want the max speed.
             //
             logz.send({
-                message: `Match ${nextMatch} did not happen yet... waiting`,
+                message: `Nothing in batch ${nextMatch} - ${lastIndexOfHttpSuccess}... waiting`,
                 service: 'fetcher',
                 matchID,
             });
+
+            if (lastIndexOfHttpSuccess > fetcherRestartPoint) {
+                fetcherRestartPoint = lastIndexOfHttpSuccess;
+            }
             return 0;
         }
 
@@ -85,50 +104,58 @@ class Fetcher extends EventEmitter {
         // Check the users we don't have in DB
         const playersIDsInMatches: any = new Set([].concat(...matches.map(({playersID}: any): number[] => playersID)));
         const playersIDsInMatchesUnique = Array.from(playersIDsInMatches);
-        const alreadyIn = await Player.find({id: {$in: playersIDsInMatchesUnique}},{id: 1});
-        const alreadyInSet = new Set(alreadyIn.map(({id})=>id));
+        const alreadyIn = await Player.find({playerID: {$in: playersIDsInMatchesUnique}},{playerID: 1});
+        const alreadyInSet = new Set(alreadyIn.map(({playerID})=>playerID));
 
-        const toFetch = playersIDsInMatchesUnique.filter(x => !alreadyInSet.has(x));
-        logz.send({
-            message: `Missing users ${toFetch}, fetching...`,
-            service: 'fetcher',
-            missing: toFetch.length,
-            matchID,
-        });
+        const toFetch = playersIDsInMatchesUnique.filter((x: any) => !alreadyInSet.has(x));
+        if (toFetch.length) {
+            logz.send({
+                message: `Missing ${toFetch.length} users , fetching...`,
+                service: 'fetcher',
+                missing: toFetch.length,
+                matchID,
+            });
 
-        const users = await userParser({
-            usersID: toFetch,
-            batch: {
-                batchSize: toFetch.length,
-            }
-        });
+            const users = await userParser({
+                usersID: toFetch,
+                batch: {
+                    batchSize: toFetch.length,
+                }
+            });
 
-        logz.send({
-            message: `Fetched ${users.length}, saving...`,
-            service: 'fetcher',
-            missing: toFetch.length,
-            matchID,
-        });
+            logz.send({
+                message: `Fetched ${users.length}, saving...`,
+                service: 'fetcher',
+                missing: toFetch.length,
+                matchID,
+            });
 
-        // Insert Users
-        const saveUsers = await Player.create(users);
 
-        logz.send({
-            message: `Saved ${users.length} users, saving matches...`,
-            service: 'fetcher',
-            matchID,
-        });
+            // Insert Users
+            const saveUsers = await Player.create(users);
+
+            logz.send({
+                message: `Saved ${users.length} users, saving ${matches.length} matches...`,
+                savedUsers: users.length,
+                service: 'fetcher',
+                matchID,
+            });
+        }
+
 
         const saveMatches = await Match.create(matches);
 
+        const latestPlayedInBatch = matches[matches.length-1].playedAt;
         logz.send({
             message: `Saved ${matches.length} matches. End of run()`,
+            savedMatches: matches.length,
             service: 'fetcher',
             matchID,
+            latestPlayedInBatch
         });
         // Insert Matches
         // Update Users Stats
-        return matches || matches.length;
+        return matches && matches.length;
     }
 }
 

@@ -20,7 +20,7 @@ const playerSchema = createSchema({
     avatarURL: Type.optionalString(),
     champion: Type.boolean(),
     // Clan history?
-    country: Type.string(),
+    country: Type.optionalString(),
     startedAt: Type.date(),
     updatedAt: Type.optionalDate(),
     createdAt: Type.optionalDate(),

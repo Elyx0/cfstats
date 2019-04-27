@@ -2,6 +2,7 @@ import {createSchema, Type, typedModel, ExtractDoc, ExtractProps} from 'ts-mongo
 const matchSchema = createSchema({
     matchID: Type.number({
         index: true,
+        unique: true,
     }),
     name: Type.optionalString(),
     gameType: Type.string({enum: ['ffa','team','quickplay'], index: true}),
@@ -26,7 +27,7 @@ const matchSchema = createSchema({
     tags: Type.array().of(Type.string())
 });
 
-matchSchema.index({id: -1},{name: 'idIndex'});
+matchSchema.index({matchID: -1},{name: 'idIndex'});
 matchSchema.index({gameType: -1, itemset: -1},{name: 'GameItemSetIndex'});
 matchSchema.index({playersID: -1, itemset: -1},{name: 'GameItemSetIndex'});
 

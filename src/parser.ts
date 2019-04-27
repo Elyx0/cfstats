@@ -120,6 +120,7 @@ export const parseUserHTML = ({rawData}: any) => {
         totalOldGames,
         totalNewGames,
         clans,
+        champion,
         karma,
         premium,
         speedWin,
@@ -135,6 +136,9 @@ export const parseMatchHTML = ({rawData}: any) => {
     const matchObject: any = {};
     const $ = cheerio.load(rawData);
     let $main: any = $('#block-system-main .content');
+    let matchID: any = $('.breadcrumb a').eq(1).attr('href').split('/').pop();
+    console.log('Parsing ---->', matchID);
+    matchID = +matchID;
     const name = $main.find('h1').text();
     let [gameType, rankType, field, playedAt] = $main.find('p').html().split('<br>');
     // Is it a quickplay?
@@ -145,7 +149,7 @@ export const parseMatchHTML = ({rawData}: any) => {
     if (name === 'Match results for Quickplay') {
         gameType = 'quickplay'; // Maybe change for hardcoded consts
     }
-    if (gameType === 'quickplay' || rankType === 'Unranked' || gameType === 'FFA') {
+    if (gameType !== 'team' || rankType === 'Unranked') {
         // Don't store, only valid ranked teams
         return false;
     }
@@ -161,6 +165,7 @@ export const parseMatchHTML = ({rawData}: any) => {
     let tags: string[] = [];
     let winningRounds = 0;
     let losingRounds = 0;
+    let totalRounds = 0;
 
 
     const mappedParticipants = $main.find('tbody tr').map((_: any,x: Node) => $(x).find('td').map((i: number,x: any)=>{
@@ -172,6 +177,7 @@ export const parseMatchHTML = ({rawData}: any) => {
                 const pos = $td.text() === '1' ?  1 : 0;
                 return pos;
             case 1:
+                // RoundForTeam and Playerscore
                 const [,roundForTeam, playerScore]: any = text.match(/(\d+)\s\((\d+)\)/);
                 return {
                     roundForTeam,
@@ -188,7 +194,9 @@ export const parseMatchHTML = ({rawData}: any) => {
                 }
                 return +userId;
             case 3:
-                return +text;
+                // Rank
+                const rank = text.match(/\d+/) || 0;
+                return +rank;
             case 4:
                 return +text;
         }
@@ -217,7 +225,7 @@ export const parseMatchHTML = ({rawData}: any) => {
     }
 
     teamSize = winningPlayersID.length;
-
+    totalRounds = winningRounds + losingRounds;
     let itemset;
 
 
@@ -235,6 +243,7 @@ export const parseMatchHTML = ({rawData}: any) => {
     playedAt = moment.tz(playedAt,'dddd, DD MMMM YYYY - HH:mm','Europe/Paris').toDate();
     const matchFinal = {
         name,
+        matchID,
         gameType,
         itemset,
         playedAt,
@@ -244,6 +253,7 @@ export const parseMatchHTML = ({rawData}: any) => {
         losingPlayersID,
         playersScores,
         playersRank,
+        totalRounds,
         playersPointsChange,
         playersPositions,
         teamSize,
@@ -263,19 +273,28 @@ export const matchParser = async (opts: any = {}): Promise<any> => {
             return `${BASE}/achtung/match/${start + i}`;
         }));
         logz.send({
-            message: `Parser ready to batch matches ${tasks.join(',')}`,
+            message: `Parser ready to batch ${tasks.length} matches `,
             time: Date.now(),
             service: 'parser',
         }, {});
         const matches = await batchHttp(tasks); // 1 - 8 rawData.
-        const matchesToKeep = matches.filter((match: any) => !match.statusCode && !match.rawData.match(/Match not yet recorded or outdated/)); // Keep only request that worked
+        const matchesToKeep = matches.filter((match: any) => !match.status && !match.rawData.match(/Match not yet recorded or outdated/)); // Keep only request that worked
+
         logz.send({
-            message: `matchParser - Asked: ${tasks.length} - Received: ${matchesToKeep.length}`,
+            message: `matchParser - Asked: ${tasks.length} - Received: ${matchesToKeep.length} - Keeping ${matchesToKeep.length}`,
             time: Date.now(),
             service: 'parser',
         }, {});
+
         const matchesDataFromHTML = matchesToKeep.map(parseMatchHTML).filter(Boolean);
-        return matchesDataFromHTML;
+        let lastIndexOfHttpSuccess = start-1;
+        if (matchesToKeep.length) {
+            lastIndexOfHttpSuccess = +(matchesToKeep[matchesToKeep.length-1].url.split('/').pop());
+        }
+        return {
+            matches: matchesDataFromHTML,
+            lastIndexOfHttpSuccess// The last match to poll from if not results
+        };
     }
     return false;
 };
@@ -299,7 +318,7 @@ export const userParser = async (opts: any = {}): Promise<any> => {
             service: 'parser',
         }, {});
         const user = await batchHttp(tasks); // 1 - 8 rawData.
-        const usersToKeep = user.filter((match: any) => !match.statusCode && !match.rawData.match(/Match not yet recorded or outdated/)); // Keep only request that worked
+        const usersToKeep = user.filter((match: any) => !match.status && !match.rawData.match(/Match not yet recorded or outdated/)); // Keep only request that worked
         logz.send({
             message: `userParser - Asked: ${tasks.length} - Received: ${usersToKeep.length}`,
             time: Date.now(),
@@ -308,26 +327,26 @@ export const userParser = async (opts: any = {}): Promise<any> => {
 
         const userDataFromHTML = usersToKeep.map(parseUserHTML).filter(Boolean);
 
-        // Comments Parsing + Avatar finding should never stop the flow of saving a user
-        // Now fetch avatar for these people from the forum
-        const commentsTask = userDataFromHTML.map(({playerID}: any) => {
-            return `${BASE}/user/${playerID}/`;
-        }); // subset with max 8
-        const comments = await batchHttp(commentsTask);
+        // // Comments Parsing + Avatar finding should never stop the flow of saving a user
+        // // Now fetch avatar for these people from the forum
+        // const commentsTask = userDataFromHTML.map(({playerID}: any) => {
+        //     return `${BASE}/user/${playerID}/`;
+        // }); // subset with max 8
+        // const comments = await batchHttp(commentsTask);
 
-        // No view fields if no entry
-        const commentsToKeep = comments.filter((match: any) => !match.statusCode && match.rawData.match(/views-field views-field-subject/)); // Keep only request that worked
-        logz.send({
-            message: `commentParser - Asked: ${commentsTask.length} - Received: ${commentsToKeep.length}`,
-            time: Date.now(),
-            service: 'parser',
-        }, {});
+        // // No view fields if no entry
+        // const commentsToKeep = comments.filter((match: any) => !match.statusCode && match.rawData.match(/views-field views-field-subject/)); // Keep only request that worked
+        // logz.send({
+        //     message: `commentParser - Asked: ${commentsTask.length} - Received: ${commentsToKeep.length}`,
+        //     time: Date.now(),
+        //     service: 'parser',
+        // }, {});
 
-        const forumsTask = commentsToKeep.map(commentLinkExtractor);
+        // const forumsTask = commentsToKeep.map(commentLinkExtractor);
 
-        // Now visit the links
+        // // Now visit the links
 
-        // Set the avatar on the correct userDataFromHTML
+        // // Set the avatar on the correct userDataFromHTML
         return userDataFromHTML;
     }
     return false;
