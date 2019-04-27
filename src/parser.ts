@@ -280,6 +280,11 @@ export const matchParser = async (opts: any = {}): Promise<any> => {
     return false;
 };
 
+export const commentLinkExtractor = ({rawData}: any) => {
+    const $ = cheerio.load(rawData);
+    return $('.views-field-subject a').first().attr('href');
+};
+
 export const userParser = async (opts: any = {}): Promise<any> => {
     const {usersID, batch} = opts;
     if (batch && batch.batchSize) {
@@ -300,13 +305,34 @@ export const userParser = async (opts: any = {}): Promise<any> => {
             time: Date.now(),
             service: 'parser',
         }, {});
+
         const userDataFromHTML = usersToKeep.map(parseUserHTML).filter(Boolean);
 
-        // TODO: Fetch Avatars here
+        // Comments Parsing + Avatar finding should never stop the flow of saving a user
+        // Now fetch avatar for these people from the forum
+        const commentsTask = userDataFromHTML.map(({playerID}: any) => {
+            return `${BASE}/user/${playerID}/`;
+        }); // subset with max 8
+        const comments = await batchHttp(commentsTask);
+
+        // No view fields if no entry
+        const commentsToKeep = comments.filter((match: any) => !match.statusCode && match.rawData.match(/views-field views-field-subject/)); // Keep only request that worked
+        logz.send({
+            message: `commentParser - Asked: ${commentsTask.length} - Received: ${commentsToKeep.length}`,
+            time: Date.now(),
+            service: 'parser',
+        }, {});
+
+        const forumsTask = commentsToKeep.map(commentLinkExtractor);
+
+        // Now visit the links
+
+        // Set the avatar on the correct userDataFromHTML
         return userDataFromHTML;
     }
     return false;
 };
+
 
 export const avatarParser = async (_opts = {}) => {
 

@@ -17,7 +17,7 @@ const playerSchema = createSchema({
     totalOldGames: Type.number({index: true}),
     totalNewGames: Type.number({index: true}),
     thinWin: Type.boolean(),
-    avatarURL: Type.string(),
+    avatarURL: Type.optionalString(),
     champion: Type.boolean(),
     // Clan history?
     country: Type.string(),
