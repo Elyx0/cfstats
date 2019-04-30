@@ -21,7 +21,14 @@ logz.send = (...args: any): void => {
 
 logz.error = (args: any,err? : any): void => {
     // eslint-disable-next-line no-undef
-    console.log(createCallsiteRecord({forError: err}).renderSync());
+
+    try {
+        console.log(createCallsiteRecord({forError: err}).renderSync());
+    } catch (otherErr) { // Create Callsite can choke on path.js or net.js node internals fails
+        console.error(err);
+        console.error(otherErr);
+    }
+
     // console.error(...args);
     // Autofill Origin domain here from process.env?
 

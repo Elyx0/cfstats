@@ -7,7 +7,6 @@ const matchSchema = createSchema({
     name: Type.optionalString(),
     gameType: Type.string({enum: ['ffa','team','quickplay'], index: true}),
     itemset: Type.string({enum: ['speed','thin'], index: true}),
-
     playedAt: Type.date({index: true}),
     playersID: Type.array({index: true}).of(Type.number()), // ids of playing players? [{Players}]? [id1,id2] , double entry? full row insert?
     karma: Type.number(),

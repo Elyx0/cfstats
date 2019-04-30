@@ -16,9 +16,10 @@ import {matchParser, userParser} from './parser';
 const DEFAULT_START_MATCH_ID = 41315000;
 const MAX_POINTER_MATCH_ID = 41401862; // Until when should I seed
 
-const MATCH_BATCH_SIZE = 300;
+const MATCH_BATCH_SIZE = 10;
 // When polling and no results
 let fetcherRestartPoint = 0;
+const NO_MATCH_FOUND_TIMEOUT = 40000;
 
 // Getting the call done
 // /match/:id -> 260ms && 6.8kb (EMPTY)
@@ -29,6 +30,7 @@ let fetcherRestartPoint = 0;
 // = 634mb of Network + users
 // = 21h at 875ms / query
 // = 2h ~ with 10 parrallel ? Cloudflare stopping us?
+// Matches take 5min to show in the history of IDs so we can be 5min behind.
 
 class Fetcher extends EventEmitter {
     public constructor() {
@@ -69,7 +71,7 @@ class Fetcher extends EventEmitter {
         if (nextMatch > MAX_POINTER_MATCH_ID) {
             // Slow delay between checking of matches
             // Compute the incrementals?
-            await new Promise(res => setTimeout(res,1000));
+            await new Promise(res => setTimeout(res,NO_MATCH_FOUND_TIMEOUT));
         } else {
             // We're in the seeding phase. Go fast
 
@@ -145,6 +147,11 @@ class Fetcher extends EventEmitter {
 
         const saveMatches = await Match.create(matches);
 
+        // Todo: Compute derived stats.
+        // Figure out new ranking system
+        // Invalidate express caches of playersIDs touched by the stat.
+
+        //
         const latestPlayedInBatch = matches[matches.length-1].playedAt;
         logz.send({
             message: `Saved ${matches.length} matches. End of run()`,
