@@ -190,7 +190,7 @@ export const parseMatchHTML = ({rawData}: any) => {
                 try {
                     userId = $td.find('a').attr('href').split('/').pop();
                 } catch {
-                    userId = false;
+                    userId = false; // Try to find him in DB?
                 }
                 return +userId;
             case 3:
@@ -235,6 +235,10 @@ export const parseMatchHTML = ({rawData}: any) => {
         itemset = 'thin';
     }
 
+    if (name.match(/thin/)) {
+        itemset = 'thin';
+    }
+
     const filterDeletedUsersFromArray = (arr: any) => arr.filter(Boolean);
 
     // Apply filter
@@ -243,6 +247,7 @@ export const parseMatchHTML = ({rawData}: any) => {
     playedAt = moment.tz(playedAt,'dddd, DD MMMM YYYY - HH:mm','Europe/Paris').toDate();
     const matchFinal = {
         name,
+        field,
         matchID,
         gameType,
         itemset,

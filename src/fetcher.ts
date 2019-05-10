@@ -13,13 +13,15 @@ import Match, {MatchDoc} from './models/match';
 
 import {matchParser, userParser} from './parser';
 
+import buildMatchCreateWithRanking from './ranking';
+
 const DEFAULT_START_MATCH_ID = 41315000;
 const MAX_POINTER_MATCH_ID = 41401862; // Until when should I seed
 
-const MATCH_BATCH_SIZE = 10;
+const MATCH_BATCH_SIZE = 20;
 // When polling and no results
 let fetcherRestartPoint = 0;
-const NO_MATCH_FOUND_TIMEOUT = 40000;
+const NO_MATCH_FOUND_TIMEOUT = 60000;
 
 // Getting the call done
 // /match/:id -> 260ms && 6.8kb (EMPTY)
@@ -144,7 +146,8 @@ class Fetcher extends EventEmitter {
             });
         }
 
-
+        // Will update only ranked speeds with ranks
+        await buildMatchCreateWithRanking(matches);
         const saveMatches = await Match.create(matches);
 
         // Todo: Compute derived stats.

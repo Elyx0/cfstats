@@ -1,6 +1,8 @@
 import * as bodyParser from 'body-parser';
+import express from 'express';
 import logger from '../middlewares/logger';
 import filter from '../filter';
+import path from 'path';
 
 // Health endpoint for load balancing
 const healthEndpoint = (req: any ,res: any): void => {
@@ -23,6 +25,7 @@ const routesDefinition = {
     'GET': {
         '/health': healthEndpoint,
         '/user/:user': userEndpoint,
+        'ping': (req: any,res: any) => res.send('pong')
     },
     'POST': {
         '/': rootEndpoint,
@@ -33,6 +36,7 @@ const loggerMiddleware = logger();
 
 const middlewares = [
     bodyParser.json(),
+    express.static(path.join('..','frontend','build')),
     bodyParser.urlencoded({extended: true}), // Handle JSON post for our endpoint
     loggerMiddleware
 ];

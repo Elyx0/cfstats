@@ -10,6 +10,17 @@ const matchSchema = createSchema({
     playedAt: Type.date({index: true}),
     playersID: Type.array({index: true}).of(Type.number()), // ids of playing players? [{Players}]? [id1,id2] , double entry? full row insert?
     karma: Type.number(),
+    ratings: Type.optionalArray().of({
+        mu: Type.number({index: true}), // The rating
+        pi: Type.number(),
+        sigma: Type.number(),
+        tau: Type.number(),
+    }),
+    field: Type.optionalString(),
+    qualityScore: Type.optionalNumber(),
+    winProbabilityTeam1: Type.optionalNumber(),
+    winProbabilityTeam2: Type.optionalNumber(),
+    ratingsChange: Type.array().of(Type.number()),
     winningPlayersID: Type.array({index: true}).of(Type.number()),
     losingPlayersID: Type.array({index: true}).of(Type.number()),
     playersScores: Type.array().of(Type.number()),

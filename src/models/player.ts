@@ -1,27 +1,35 @@
 import {createSchema, Type, typedModel, ExtractDoc, ExtractProps} from 'ts-mongoose';
 
+const RankType = Type.optionalObject().of({
+    mu: Type.number({index: true}), // The rating
+    pi: Type.number(),
+    sigma: Type.number(),
+    tau: Type.number(),
+});
+
 const playerSchema = createSchema({
     playerID: Type.number({index: true}),
     title: Type.optionalString(),
-    name: Type.string(),
-    rank2: Type.number({index: true}),
-    rank3: Type.number({index: true}),
-    rank4: Type.number({index: true}),
-    clans: Type.array().of(Type.string()),
-    karma: Type.number({index: true}), // Up thinner down speeder over his own speed games
-    premium: Type.boolean({index: true}),
-    speedWin: Type.boolean({index: true}),
-    total2v2Games: Type.number({index: true}),
-    total3v3Games: Type.number({index: true}),
-    total4v4Games: Type.number({index: true}),
-    totalOldGames: Type.number({index: true}),
-    totalNewGames: Type.number({index: true}),
-    thinWin: Type.boolean(),
+    name: Type.optionalString(),
+    rank2: RankType,
+    rank3: RankType,
+    rank4: RankType,
+    clans: Type.optionalArray().of(Type.string()),
+    karma: Type.number({index: true, default: 0}), // Up thinner down speeder over his own speed games
+    premium: Type.boolean({index: true, default: false}),
+    speedWin: Type.boolean({index: true, default: false}),
+    total2v2Games: Type.number({index: true, default: 0}),
+    total3v3Games: Type.number({index: true, default: 0}),
+    total4v4Games: Type.number({index: true, default: 0}),
+    totalOldGames: Type.number({index: true, default: 0}),
+    totalNewGames: Type.number({index: true, default: 0}),
+    thinWin: Type.optionalBoolean(),
     avatarURL: Type.optionalString(),
-    champion: Type.boolean(),
+    champion: Type.boolean({default: false}),
+    deleted: Type.boolean({default: false}),
     // Clan history?
     country: Type.optionalString(),
-    startedAt: Type.date(),
+    startedAt: Type.optionalDate(),
     updatedAt: Type.optionalDate(),
     createdAt: Type.optionalDate(),
 });
