@@ -6,11 +6,11 @@ export const LandingWrapper = styled.div`
 `;
 
 export const ContentWrapper = styled.div`
-  height:100vh;
+ // height:100vh;
   display: flex;
   align-items: center;
   justify-content: space-around;
-  flex-flow: column nowrap;
+ // flex-flow: column nowrap;
 `;
 
 export const Heading = styled.p`
@@ -233,10 +233,11 @@ opacity: 1;
 export const ExplainWrapper = styled.div`
   background: ${props => props.theme.colors.backgroundLight};
   padding: .8rem;
+  margin: .8rem;
   border-top: 1px solid;
   border-color: ${props => props.theme.colors.borderGrey};
-  display: flex;
-  flex-flow: row nowrap;
+  //display: flex;
+  //flex-flow: row nowrap;
   align-items: space-around;
   white-space: pre-wrap;
   word-break:keep-all;
@@ -245,6 +246,8 @@ export const ExplainWrapper = styled.div`
   `}
   a {
     color: black;
+    margin:10px;
+    display:inline-block;
   }
 `;
 

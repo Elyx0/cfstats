@@ -8,8 +8,10 @@
     "history": "^4.9.0",
     "lodash": "^4.17.11",
     "moment-timezone": "^0.5.25",
+    "plotly.js": "^1.47.4",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
+    "react-plotly.js": "^2.3.0",
     "react-redux": "^7.0.3",
     "react-router-dom": "^5.0.0",
     "react-scripts": "3.0.1",
@@ -41,5 +43,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "babel-plugin-styled-components": "^1.10.0"
   }
 }

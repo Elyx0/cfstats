@@ -25,7 +25,7 @@ const SvgWrapper = styled.svg`
 `;
 
 const SvgIcon = ({ animate }) => (
-  <SvgWrapper animate={animate} width="10%" height="100%" viewBox="0 0 335 107">
+  <SvgWrapper animate={animate} viewBox="0 0 335 107">
   <svg xmlns='http://www.w3.org/2000/svg' height='107.87' width='335.445'
 id='svg16'>
     <rect id='rect38' width='335.445' height='107.87' fillOpacity="0" strokeWidth='2.73' />

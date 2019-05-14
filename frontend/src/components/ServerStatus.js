@@ -38,7 +38,7 @@ class ServerStatus extends Component {
   }
   async statusCheck() {
     try {
-      const res = await fetch(endPoint);
+      const res = await fetch(endPoint+'/ping');
       const json = await res.json();
       if (json.error) throw new Error('Api Error');
       this.setState({ status: 'success' });

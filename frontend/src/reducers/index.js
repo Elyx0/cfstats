@@ -1,9 +1,9 @@
 import { combineReducers } from 'redux';
 import { connectRouter as router } from 'connected-react-router'
-import inbox from './inboxReducer';
+import stats from './statsReducer';
 import { createHashHistory } from 'history';
 
 const history = createHashHistory();
-const rootReducer = combineReducers({ router: router(history), inbox });
+const rootReducer = combineReducers({ router: router(history), stats });
 
 export default rootReducer;

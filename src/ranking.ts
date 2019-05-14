@@ -58,11 +58,16 @@ const addRankingToMatches = async (matches: any[], memory: any): Promise<any> =>
         const extractRating = (x: any): number => x.mu;
         const extractMuPiSigmaTau = (arr: any[]) => arr.map(({pi,tau,sigma,mu}) => ({pi,tau,sigma,mu}));
         // https://boostlog.io/@vithalreddy/push-and-pop-items-into-mongodb-array-via-mongoose-in-nodejs-5a8c3a95a7e5b7008ae1d809
-        if (match.ratings) {
-            match.ratings.remove();
-        } else {
-            match.ratings = [];
-        }
+        // if (match.ratings) {
+        //     for (let matchRating of match.ratings) {
+        //         matchRating.remove();
+        //         await match.save();
+        //     }
+
+        //     // Not enough time to actually do it?
+        // } else {
+        match.ratings = [];
+        // }
         match.ratings.push(...extractMuPiSigmaTau(rated1),...extractMuPiSigmaTau(rated2));
 
         match.winProbabilityTeam1 = winProbabilityTeam1,
@@ -75,18 +80,20 @@ const addRankingToMatches = async (matches: any[], memory: any): Promise<any> =>
             const player = users.get(playerID);
             const playerRank = player[rankKey].mu;
             player[rankKey] = rating;
-            users.set(playerID,player);
             return rating.mu - playerRank;
             // console.log(`After: ${player} : ${extractRating(users.get(player))}`);
         });
 
-        if (match.ratingsChange) {
-            match.ratingsChange.remove();
-        } else {
-            match.ratingsChange = [];
-        }
+        // if (match.ratingsChange) {
+        //     match.ratingsChange.remove();
+        //     await match.save();
+        //     match.ratingsChange = [];
+        //     await match.save();
+        // } else {
+        match.ratingsChange = [];
+        // }
         match.ratingsChange.push(...matchRatingsChange);
-        // console.log(`${match.ratings}`);
+        console.log(`Patched: ${match.matchID}`);
     }
 };
 
@@ -121,14 +128,14 @@ async function run(): Promise<any> {
     await setupConnection();
     // const query = {$and: [{itemset: 'speed'},{playedAt: {$gt: new Date('2019-04-01T00:00:00.000+0000')}}, {playedAt: {$lt: new Date('2019-05-01T00:00:00.000+0000')}}]};
     const query = {itemset: 'speed'};
-    const matches = await Match.find(query,{},{matchID: 1});
+    const matches = await Match.find(query,{}).sort({matchID: 1});
     console.log(matches);
     // In normal (not seeding) I have to reset ranks on the first
     // game of the month a player played.
     // Either player.rankHistory.may not present = 700;
     const memory = {users: new Map()};
     // We need starting rank point
-    addRankingToMatches(matches,memory);
+    await addRankingToMatches(matches,memory);
 
     // These two saves should be transactions so rollback is possible
     await saveUsersFromMatches(matches,memory);
@@ -137,9 +144,13 @@ async function run(): Promise<any> {
     console.log('Done!');
 }
 
+// run().catch(err => {
+//     throw err;
+// });
+
 const buildMatchCreateWithRanking = async (matches: any[]): Promise<any> => {
     const speedMatches = matches.filter((m: any): boolean => m.itemset === 'speed');
-    const playersIDsInMatches: any = new Set(...speedMatches.map(({playersID}: any): number[] => playersID));
+    const playersIDsInMatches: any = new Set(speedMatches.map(({playersID}: any): number[] => playersID).reduce((acc,el) => acc.concat(...el),[]));
     const playersIDsInMatchesUnique = Array.from(playersIDsInMatches);
     const players = await Player.find({playerID: {$in: playersIDsInMatchesUnique}},{
         playerID: 1,
@@ -148,8 +159,21 @@ const buildMatchCreateWithRanking = async (matches: any[]): Promise<any> => {
         rank4: 1
     });
     const users = new Map();
-    players.forEach(({playerID,rank2,rank3,rank4}) => {
-        users.set(playerID,{rank2,rank3,rank4});
+    players.forEach(({playerID,rank2,rank3,rank4}): void => {
+        if (rank2) {
+            rank2 = new Rating(rank2.mu,rank2.sigma);
+        }
+        if (rank3) {
+            rank3 = new Rating(rank3.mu,rank3.sigma);
+        }
+        if (rank4) {
+            rank4 = new Rating(rank4.mu,rank4.sigma);
+        }
+        users.set(playerID,{
+            rank2,
+            rank3,
+            rank4,
+        });
     });
     const memory = {users};
     addRankingToMatches(speedMatches,memory); // Mutates
@@ -163,8 +187,6 @@ const buildMatchCreateWithRanking = async (matches: any[]): Promise<any> => {
 };
 
 export default buildMatchCreateWithRanking;
-
-// run();
 
 
 // const p1 = new Rating(700);

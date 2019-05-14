@@ -57,7 +57,7 @@ const setupConnection = async () => {
         // Check memory heap,
         // We need to release everything
         fetcher.on('fetching_ended',nextRun);
-        fetcher.emit('fetching_ended');
+        fetcher.emit('fetching_ended'); // Renable me
     });
 };
 

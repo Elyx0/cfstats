@@ -3,6 +3,7 @@ import express from 'express';
 import logger from '../middlewares/logger';
 import filter from '../filter';
 import path from 'path';
+import cors from 'cors';
 
 // Health endpoint for load balancing
 const healthEndpoint = (req: any ,res: any): void => {
@@ -19,13 +20,17 @@ const rootEndpoint = (req: any, res: any): void => {
     return res.send(result);
 };
 
-const userEndpoint = (req: any,res: any): void => res.send({});
+import landingEndpoint from './routes/landing';
+import userEndpoint from './routes/user';
+import findEndpoint from './routes/find';
 
 const routesDefinition = {
     'GET': {
         '/health': healthEndpoint,
+        '/search/:user': findEndpoint,
         '/user/:user': userEndpoint,
-        'ping': (req: any,res: any) => res.send('pong')
+        '/ladder/': landingEndpoint,
+        '/ping': (req: any,res: any) => res.json({pong: 1})
     },
     'POST': {
         '/': rootEndpoint,
@@ -36,6 +41,7 @@ const loggerMiddleware = logger();
 
 const middlewares = [
     bodyParser.json(),
+    cors(),
     express.static(path.join('..','frontend','build')),
     bodyParser.urlencoded({extended: true}), // Handle JSON post for our endpoint
     loggerMiddleware
