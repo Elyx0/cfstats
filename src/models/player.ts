@@ -5,6 +5,7 @@ const RankType = Type.optionalObject().of({
     pi: Type.number(),
     sigma: Type.number(),
     tau: Type.number(),
+    base: Type.optionalNumber({index: true, default: 0}),
 });
 
 const playerSchema = createSchema({
@@ -35,9 +36,9 @@ const playerSchema = createSchema({
 });
 
 playerSchema.index({id: -1},{name: 'idIndex'});
-playerSchema.index({rank2: -1},{name: 'rank2Index'});
-playerSchema.index({rank3: -1},{name: 'rank3Index'});
-playerSchema.index({rank4: -1},{name: 'rank4Index'});
+playerSchema.index({'r2.base': -1},{name: 'r2Index'});
+playerSchema.index({'r3.base': -1},{name: 'r3Index'});
+playerSchema.index({'r4.base': -1},{name: 'r4Index'});
 playerSchema.index({speedWin: -1, id: 1},{name: 'speedWinIdIndex'});
 
 // Win Lose -> ?

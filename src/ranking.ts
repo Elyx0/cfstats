@@ -109,7 +109,8 @@ const saveUsersFromMatches = async (matches: any[],memory: any): Promise<any> =>
         };
         Object.keys(keys).forEach(key => {
             let {mu,pi,tau,sigma} = keys[key];
-            user[key] = {mu,pi,tau,sigma};
+            const base = mu - 3*sigma;
+            user[key] = {mu,pi,tau,sigma,base};
         });
         usersPromises.push(Player.update({playerID: id},user,{
             upsert: true,
@@ -143,6 +144,31 @@ async function run(): Promise<any> {
     await Promise.all(matches.map(m => m.save()));
     console.log('Done!');
 }
+
+async function runUpdateRanks(): Promise<any> {
+    await setupConnection();
+    const players = await Player.find({});
+    const addr2r3r4 = (p: any) => {
+        [2,3,4].forEach(key => {
+            const rankKey = 'rank'+key;
+            if (p[rankKey] && p[rankKey].mu) {
+                p[rankKey].base = p[rankKey].mu - (3*p[rankKey].sigma);
+            }
+        });
+    };
+    for (let player of players) {
+        addr2r3r4(player);
+        player.markModified('rank2');
+        player.markModified('rank3');
+        player.markModified('rank4');
+        await player.save();
+        console.log(`Saved: [${player.playerID}] - ${player.name}`);
+    }
+}
+
+// runUpdateRanks().catch(err => {
+//     throw err;
+// });
 
 // run().catch(err => {
 //     throw err;

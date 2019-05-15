@@ -235,7 +235,7 @@ export const parseMatchHTML = ({rawData}: any) => {
         itemset = 'thin';
     }
 
-    if (name.match(/thin/)) {
+    if (name.match(/thin/i)) {
         itemset = 'thin';
     }
 

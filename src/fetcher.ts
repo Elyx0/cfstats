@@ -18,7 +18,7 @@ import buildMatchCreateWithRanking from './ranking';
 const DEFAULT_START_MATCH_ID = 41315000;
 const MAX_POINTER_MATCH_ID = 41401862; // Until when should I seed
 
-const MATCH_BATCH_SIZE = 300;
+const MATCH_BATCH_SIZE = 20;
 // When polling and no results
 let fetcherRestartPoint = 0;
 const NO_MATCH_FOUND_TIMEOUT = 60000;

@@ -11,30 +11,30 @@ const landingEnpoint = async (req: any, res: any): Promise<any> => {
         rank2: 1,
         playerID: 1,
     }).sort({
-        'rank2.mu': -1,
+        'rank2.base': -1,
     })
-        .limit(100);
+        .limit(300);
     const ladder3v3 = await Player.find({
-        'rank3.mu': {$ne: null}
+        'rank3.base': {$ne: null}
     },{
         name: 1,
         rank3: 1,
         playerID: 1,
     }).sort({
-        'rank3.mu': -1,
+        'rank3.base': -1,
     })
-        .limit(100);
+        .limit(300);
     const ladder4v4 = await Player.find({
-        'rank4.mu': {$ne: null}
+        'rank4.base': {$ne: null}
     },{
         name: 1,
         rank4: 1,
         playerID: 1,
     })
         .sort({
-            'rank4.mu': -1,
+            'rank4.base': -1,
         })
-        .limit(100);
+        .limit(300);
     res.json({data: {
         ladder2v2,
         ladder3v3,

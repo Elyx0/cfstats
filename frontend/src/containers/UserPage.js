@@ -29,9 +29,10 @@ class UserPage extends PureComponent {
     this.fetchUser = this.fetchUser.bind(this);
   }
   componentDidMount() {
-   // this.fetchUser(); // Fetches only initial user
+   //; // Fetches only initial user
     console.log('mounted');
     // const interval = setInterval(this.fetchUser,10000);
+    this.fetchUser(this.props.match.params.id);
     // this.setState({timer:interval})
   }
   componentWillReceiveProps(nextProps,prevState) {
