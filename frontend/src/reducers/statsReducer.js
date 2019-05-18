@@ -5,6 +5,7 @@ const initialState = {
   users: {},
   ladder: {},
   matches: {},
+  pins: {},
 };
 
 export default (state = initialState, action) => {
@@ -37,6 +38,29 @@ export default (state = initialState, action) => {
     case statsActions.RECEIVED_LADDER: {
       const { data } = action;
       const newState = cloneDeep(state);
+      
+      if (state.ladder && state.ladder.ladder2v2) {
+      // Go through newState and get the positional diff
+      // Should do it in one loop ideally
+      const oldMappings = Object.keys(state.ladder).forEach(key => {
+        state.ladder[key] = state.ladder[key].map(x => x.playerID); 
+      });
+
+      Object.keys(data).forEach(key => {
+        data[key].forEach((el,index) => {
+          const oldPos = state.ladder[key].indexOf(el.playerID);
+          // Can be new to the ladder?
+          // Can be out of the ladder -> No because i work with newest data
+          if (oldPos !== -1) {
+            el.diff = index - oldPos;
+            if (Number.isNaN(el.diff)) el.diff = 0;
+            // Wondering about timestamps of last update
+          }
+          
+        })
+      });
+      }
+
       newState.ladder = data;
       return newState;
     }
@@ -54,6 +78,18 @@ export default (state = initialState, action) => {
     }
     case statsActions.LOGOUT: {
       return initialState;
+    }
+    case statsActions.ADD_PIN: {
+      const { id } = action;
+      const newState = cloneDeep(state);
+      newState.pins[id] = true;
+      return newState;
+    }
+    case statsActions.REMOVE_PIN: {
+      const { id } = action;
+      const newState = cloneDeep(state);
+      delete newState.pins[id];
+      return newState;
     }
     default:
       return state;

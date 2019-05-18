@@ -9,7 +9,7 @@ const findEndpoint = async (req: any, res: any): Promise<any> => {
     if (user.length < 3) {
         return res.json({data: []});
     }
-    const search = new RegExp(user); // DDOS beware
+    const search = new RegExp(user,'i'); // DDOS beware
     const players = await Player.find({name: search});
     if (players) {
         response = {

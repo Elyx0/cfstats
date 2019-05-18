@@ -59,6 +59,19 @@ export const LosingTeamScore = styled.div`
     padding:20px;
 `;
 
+export const GameToolBar = styled.button`
+    font-size: 12px;
+    font-weight: bold;
+    padding:10px;
+    margin:10px;
+    cursor:pointer;
+    flex:1;
+    svg {
+        width:14px;
+        height:auto;
+    }
+`;
+
 export const Player = styled.div`
     display:flex;
     flex-direction: column;

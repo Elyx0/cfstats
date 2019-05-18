@@ -5,6 +5,8 @@ export const LOGIN_SUCCESS = 'LOGIN_SUCCESS';
 export const LOADING_LADDER = 'LOADING_LADDER';
 export const RECEIVED_LADDER = 'RECEIVED_LADDER';
 export const RECEIVED_USER = 'RECEIVED_USER';
+export const ADD_PIN = 'ADD_PIN';
+export const REMOVE_PIN = 'REMOVE_PIN';
 export const LOGOUT = 'LOGOUT';
 
 export const initialLogin = data => (dispatch) => {
@@ -42,6 +44,8 @@ try {
   return true;
 };
 
+export const addPin = id => dispatch => dispatch({type:ADD_PIN,id});
+export const removePin = id => dispatch => dispatch({type:REMOVE_PIN,id});
 export const fetchUser = (id) => async (dispatch, getState) => {
 try {
     const res = await fetch(`${endPoint}/user/${id}`, {

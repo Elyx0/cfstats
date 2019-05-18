@@ -30,6 +30,11 @@ export const LadderBlockContent = styled.div`
 `;
 export const LadderScore = styled.div`
     color: #888;
+    display: flex;
+    align-items: center;
+    img {
+        padding-left:3px;
+    }
 `;
 
 export const LadderRank = styled.div`

@@ -25,6 +25,7 @@ const LogoutStatusWrapper = styled.div`
 const Suggestion = styled.span`
   font-size: 12px;
   padding-left:5px;
+  cursor:pointer;
   text-decoration: underline;
 `
 
@@ -40,13 +41,20 @@ class Header extends React.Component {
     super(props);
     this.state = {
       debounce: null,
-      suggestions: []
+      suggestions: [],
     }
     this.handleChange = this.handleChange.bind(this);
     this.renderSearch = this.renderSearch.bind(this);
+    this.renderPins = this.renderPins.bind(this);
   }
   renderSearch(suggestions) {
     return suggestions.slice(0,8).map(s => {
+      return <Suggestion key={s.playerID}  onClick={() => this.props.dispatch(push(`/user/${s.playerID}`))}>{s.name.slice(0,30)}</Suggestion>
+    });
+  }
+  renderPins() {
+    return Object.keys(this.props.pins).map(pID => {
+      const s = this.props.users[pID];
       return <Suggestion key={s.playerID}  onClick={() => this.props.dispatch(push(`/user/${s.playerID}`))}>{s.name.slice(0,30)}</Suggestion>
     });
   }
@@ -61,7 +69,7 @@ class Header extends React.Component {
       })).json();
       suggestions = resSuggestions.data.players;
      
-    } finally {
+    } catch(e){} finally {
       this.setState({suggestions});
     }
     },1500);
@@ -74,6 +82,7 @@ class Header extends React.Component {
       <SvgWrapper onClick={() => { dispatch(push('/')) }}>
       <SvgIcon />
       </SvgWrapper>
+      {this.renderPins()}
       <SearchBlock>
       🔎<input type="text" onChange={this.handleChange} />
           {this.renderSearch(this.state.suggestions)}
@@ -87,5 +96,7 @@ class Header extends React.Component {
     );
   }
 }
-
-export default connect()(Header);
+const mapStateToProps = state => {
+  return state.stats;
+}
+export default connect(mapStateToProps)(Header);

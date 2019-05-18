@@ -252,7 +252,8 @@ export default buildMatchCreateWithRanking;
 //     return rating + rankChange;
 // };
 
-
+// const WIN_POINTS = 1;
+// const LOSE_POINTS = 0;
 // let pArank = 1656;
 // let pBrank = 1763;
 // pArank = (1810-10+1855-10)/2;
@@ -268,7 +269,7 @@ export default buildMatchCreateWithRanking;
 // const avg = (arr: number[]) => (arr.reduce((acc: any,el: any) => acc+el,0)/arr.length);
 // pArank = avg(teamOneranks);
 // pBrank = avg(teamTworanks);
-// Im -3  :/ ?
+
 
 // const expectedPaWins = probAWins(pArank,pBrank);
 // const expectedPbWins = probBWins(pArank,pBrank);

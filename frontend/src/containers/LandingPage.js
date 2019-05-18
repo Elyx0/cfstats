@@ -36,7 +36,7 @@ class LandingPage extends PureComponent {
   }
   componentDidMount() {
     this.fetchLadder();
-    const interval = setInterval(this.fetchLadder,60000);
+    const interval = setInterval(this.fetchLadder,1000*60*5);
     this.setState({timer:interval})
   }
 

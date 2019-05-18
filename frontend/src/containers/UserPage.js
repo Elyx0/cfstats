@@ -1,6 +1,6 @@
 import React, { PureComponent } from 'react';
 import { connect } from 'react-redux';
-import { fetchUser } from '../actions/statsActions';
+import { fetchUser, addPin, removePin } from '../actions/statsActions';
 
 import { BounceOutLeft, BounceInRight } from 'animate-css-styled-components';
 import {
@@ -13,6 +13,7 @@ import {
   Footer,
 } from '../styles/styles-landing';
 
+import { GameToolBar } from '../styles/styles-gamehistory';
 
 import Loader from '../components/Loader';
 import GameHistory from '../components/GameHistory';
@@ -27,6 +28,7 @@ class UserPage extends PureComponent {
         timer: null,
     };
     this.fetchUser = this.fetchUser.bind(this);
+    this.isInFav = this.isInFav.bind(this);
   }
   componentDidMount() {
    //; // Fetches only initial user
@@ -42,7 +44,7 @@ class UserPage extends PureComponent {
           this.setState({id})
         
           this.fetchUser(id);
-          clearInterval(this.state.interval);
+          clearInterval(this.state.timer);
           const interval = setInterval(()=>{this.fetchUser(id)},60000);
           this.setState({timer:interval})
       }
@@ -70,12 +72,20 @@ class UserPage extends PureComponent {
     );
   }
 
-
+  isInFav() {
+    return this.props.pins[this.props.match.params.id];
+  }
 
   render() {
     return (
       <LandingWrapper>
+      <GameToolBar onClick={()=> this.props.dispatch(this.isInFav(this.props.match.params.id) ? removePin(this.props.match.params.id) : addPin(this.props.match.params.id))}><svg version='1' xmlns='http://www.w3.org/2000/svg' width='1072' height='1706.667'
+      viewBox='0 0 804.000000 1280.000000'>
+          <path d='M4195 12773 c-282 -14 -570 -86 -740 -186 -146 -85 -250 -227 -274 -374 -6 -37 -23 -412 -37 -833 l-25 -765 -466 -1401 -467 -1401 -121 -12 c-362 -35 -661 -162 -918 -389 -246 -217 -405 -476 -462 -752 -24 -111 -24 -323 -2 -440 98 -506 505 -1025 1127 -1438 80 -53 148 -99 153 -102 4 -3 -51 -204 -122 -446 -71 -241 -238 -810 -371 -1264 -133 -454 -342 -1167 -465 -1585 -123 -418 -253 -863 -290 -989 -56 -191 -65 -230 -54 -241 19 -17 52 -26 65 -17 5 4 203 416 439 917 235 501 619 1315 852 1810 234 495 483 1025 555 1178 105 222 134 277 147 271 75 -30 307 -101 432 -133 438 -111 852 -132 1197 -61 488 101 824 383 966 811 160 482 92 983 -190 1405 l-64 97 18 31 c31 51 1469 2284 1530 2376 54 80 89 113 615 566 307 265 581 503 608 530 198 195 209 472 34 839 -198 412 -616 849 -1149 1199 -350 230 -817 456 -1206 585 -469 156 -939 232 -1315 214z'
+          transform='matrix(.1 0 0 -.1 0 1280)' />
+      </svg><span>{this.isInFav() ? 'Remove from' : 'Add to'} favorites</span></GameToolBar>
         <ContentWrapper>
+         
           <GameHistory id={this.props.match.params.id} users={this.props.users} matches={this.props.matches} totalMatches={this.props.matches.length} dispatch={this.props.dispatch} />
         </ContentWrapper>
 

@@ -14,7 +14,22 @@ import {
 } from '../styles/styles-ladder';
 import { push } from 'connected-react-router';
 
+import arrowUp from '../assets/arrow_up.png';
+import arrowDown from '../assets/arrow_down.png';
+import equal from '../assets/equal.png';
 
+const arrowForScore = diff => {
+    if (diff === undefined) return equal;
+    if (diff == 0) return equal;
+    if (diff > 0) return arrowDown;
+    return arrowUp;
+}
+
+const renderScoreDiff = diff => {
+    if (diff === undefined) diff = 0;
+    if (Math.abs(diff) < 2) return '';
+    return diff*-1
+}
 class Ladder extends PureComponent {
     constructor(props) {
         super(props);
@@ -28,7 +43,7 @@ class Ladder extends PureComponent {
         return Object.keys(ladder).map((bracket,bracketNum) => {
             const players = ladder[bracket];
             return <LadderBlock key={bracket}>
-                <LadderHeader>{bracket.replace('ladder','')}</LadderHeader>
+                <LadderHeader>{bracket.replace('ladder','')} Speed</LadderHeader>
                 {players.sort((p1,p2)=> {
                     let pRank1 = p1['rank'+(bracketNum+2)];
                     let pRank2 = p2['rank'+(bracketNum+2)];
@@ -41,7 +56,7 @@ class Ladder extends PureComponent {
                     name = name.length > 30 ? name.slice(0,27) + '...' : name;
                     //pRank = ~~(pRank*10);
                     return <LadderRow key={p+ranking} onClick={() => this.props.dispatch(push(`/user/${p.playerID}`))}>
-                    <LadderScore>#{ranking+1}</LadderScore>
+                    <LadderScore>#{ranking+1}<img src={arrowForScore(p.diff)} />{renderScoreDiff(p.diff)}</LadderScore>
                     <LadderName>{name}</LadderName>
                     <LadderRank>{~~((pRank.mu - 3*pRank.sigma)*100)}<LadderSigma> ± {~~pRank.sigma*100}</LadderSigma></LadderRank>
                     </LadderRow>;
