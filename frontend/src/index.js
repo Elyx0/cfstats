@@ -10,7 +10,7 @@ const store = configureStore();
 load(store).then(newState => {
   if (newState.inbox && newState.inbox.user && newState.inbox.user.token) {
     // Already logged in
-    store.dispatch(push('/inbox'));
+    // store.dispatch(push('/inbox'));
   }
 });
 

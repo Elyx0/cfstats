@@ -31,6 +31,7 @@ class UserPage extends PureComponent {
     this.isInFav = this.isInFav.bind(this);
   }
   componentDidMount() {
+    window.scrollTo(0, 0);
    //; // Fetches only initial user
     console.log('mounted');
     // const interval = setInterval(this.fetchUser,10000);
